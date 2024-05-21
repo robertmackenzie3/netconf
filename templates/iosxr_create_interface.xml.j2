@@ -1,0 +1,17 @@
+<config>
+    <interface-configurations xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg">
+        <interface-configuration>
+            <active>act</active>
+            <interface-name>{{ interface_name }}</interface-name>
+            <interface-virtual/>
+            <ipv4-network xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-io-cfg">
+                <addresses>
+                    <primary>
+                        <address>{{ address }}</address>
+                        <netmask>{{ netmask }}</netmask>
+                    </primary>
+                </addresses>
+            </ipv4-network>
+        </interface-configuration>
+    </interface-configurations>
+</config>
