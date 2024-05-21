@@ -6,7 +6,7 @@ from ncclient import manager
 from jinja2 import Environment, FileSystemLoader
 
 
-env = Environment(loader=FileSystemLoader("templates"))
+env = Environment(loader=FileSystemLoader("app/templates"))
 
 
 def get_device_class(device_type):

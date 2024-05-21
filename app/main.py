@@ -1,6 +1,6 @@
 import logging
 import os
-from netconf.app.backend import create_device
+from app.backend import create_device
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
