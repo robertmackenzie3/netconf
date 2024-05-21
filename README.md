@@ -35,3 +35,23 @@ curl -s -X DELETE 'http://127.0.0.1:8000/interface?host=sandbox-iosxr-1.cisco.co
 
 curl -si 'http://127.0.0.1:8000/interface?host=sandbox-iosxr-1.cisco.com&device_type=iosxr&interface_name=Loopback0'
 ```
+
+```
+❯ curl -s 'http://127.0.0.1:8000/interface?host=sandbox-iosxr-1.cisco.com&device_type=iosxr&interface_name=Loopback2' | jq
+
+{
+  "data": {
+    "@xmlns": "urn:ietf:params:xml:ns:netconf:base:1.0",
+    "@xmlns:nc": "urn:ietf:params:xml:ns:netconf:base:1.0",
+    "interface-configurations": {
+      "@xmlns": "http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg",
+      "interface-configuration": {
+        "active": "act",
+        "interface-name": "Loopback2",
+        "interface-virtual": null,
+        "description": "test2"
+      }
+    }
+  }
+}
+```
