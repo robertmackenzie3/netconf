@@ -1,3 +1,9 @@
+"""
+Custom exceptions we need
+"""
+
 
 class CannotEdit(Exception):
-    pass
+    """
+    Use when we cannot edit config on the device
+    """

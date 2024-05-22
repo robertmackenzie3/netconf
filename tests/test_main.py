@@ -1,3 +1,7 @@
+"""
+Test for the fastapi app frontend
+"""
+
 import os
 from unittest import TestCase
 from unittest.mock import patch
@@ -7,6 +11,10 @@ from app.main import app
 
 
 class TestMain(TestCase):
+    """
+    Test the endpoints in the fastapi app
+    """
+
     @classmethod
     def setUpClass(cls):
         cls.env_patcher = patch.dict(
@@ -24,6 +32,7 @@ class TestMain(TestCase):
         pass
 
     def test_healthz(self):
+        """Test we can check health of app"""
         response = self.client.get("/healthz")
         self.assertEqual(response.status_code, 200)
         self.assertDictEqual(response.json(), {"detail": "Netconf is running"})

@@ -1,19 +1,26 @@
+"""
+Backend classes to action changes on a device via NETCONF
+"""
+
 import os
-from abc import ABC
 from dataclasses import dataclass
 
 import xmltodict
 from jinja2 import Environment, FileSystemLoader
 from ncclient import manager
 
-from app.models import InterfaceConfig
 from app.exceptions import CannotEdit
+from app.models import InterfaceConfig
 
 env = Environment(loader=FileSystemLoader("app/templates"))
 
 
 @dataclass
 class ManagerParams:
+    """
+    Class to manage how to connect to the device via ncclient
+    """
+
     host: str
     device_type: str
     port: int = 830
@@ -26,6 +33,7 @@ class ManagerParams:
         self.password = os.environ["DEVICE_PASSWORD"]
 
     def format(self):
+        """Format the manager params dict for ncclient manager.connect"""
         return {
             "host": self.host,
             "port": self.port,
@@ -39,8 +47,10 @@ class ManagerParams:
 
 
 @dataclass
-class DeviceObject(ABC):
-    """A base class for an object that can be retrieved or editted on a device"""
+class BaseObject:
+    """
+    A base class for an object that can be retrieved or editted on a device
+    """
 
     manager_params: ManagerParams
 
@@ -53,28 +63,30 @@ class DeviceObject(ABC):
         conn.edit_config(target="candidate", config=rendered_config)
         conn.commit()
 
-    def get_one(self):
-        raise NotImplementedError
-
-    def get_all(self):
-        raise NotImplementedError
-
-    def add(self):
-        raise NotImplementedError
-
-    def remove(self):
-        raise NotImplementedError
-
 
 @dataclass
-class Interface(DeviceObject):
+class Interface(BaseObject):
     """An interface object on a device"""
 
-    def _check_exists(self, interface_name):
+    def _check_exists(self, interface_name: str) -> bool:
+        """
+        Check if the interface exists
+        Args:
+            interface_name (str): name of the interface to check
+        Returns:
+            boolean
+        """
         json_data = self.get_one(interface_name)
         return bool(json_data.get("data", {}).get("interface-configurations"))
 
     def get_one(self, interface_name: str) -> dict:
+        """
+        Get config of a single interface
+        Args:
+            interface_name (str): name of the interface to check
+        Returns:
+            dict
+        """
         with manager.connect(**self.manager_params.format()) as conn:
             template = env.get_template(
                 f"{self.manager_params.device_type}_get_interface.xml.j2"
@@ -83,6 +95,11 @@ class Interface(DeviceObject):
             return self._get_config(conn, rendered_config)
 
     def get_all(self) -> dict:
+        """
+        Get config of all interfaces
+        Returns:
+            dict
+        """
         with manager.connect(**self.manager_params.format()) as conn:
             template = env.get_template(
                 f"{self.manager_params.device_type}_get_interfaces.xml.j2"
@@ -91,6 +108,13 @@ class Interface(DeviceObject):
             return self._get_config(conn, rendered_config)
 
     def add(self, interface_config: InterfaceConfig) -> dict:
+        """
+        Add a single interface to the device config
+        Args:
+            interface_config (InterfaceConfig): config of interface to add
+        Returns:
+            dict
+        """
         if self._check_exists(interface_config.interface_name):
             raise CannotEdit(
                 f"Interface {interface_config.interface_name} already exists"
@@ -104,6 +128,13 @@ class Interface(DeviceObject):
             return self._edit_config(conn, rendered_config)
 
     def remove(self, interface_name: str) -> dict:
+        """
+        Remove a single interface from the device config
+        Args:
+            interface_name (str): name of the interface to check
+        Returns:
+            dict
+        """
         if not self._check_exists(interface_name):
             raise CannotEdit(f"Interface {interface_name} does not exist")
 
