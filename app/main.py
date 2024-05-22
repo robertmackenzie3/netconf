@@ -11,7 +11,9 @@ from app.exceptions import CannotEdit
 
 load_dotenv()
 
-log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.DEBUG)
+log_level = getattr(
+    logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.DEBUG
+)
 logging.basicConfig(level=log_level)
 logger = logging.getLogger(__name__)
 
@@ -61,11 +63,16 @@ def get_interfaces(host: str, device_type: str):
 
 
 @app.put("/interface")
-def add_interface(host: str, device_type: str, interface_config: InterfaceConfig):
+def add_interface(
+    host: str, device_type: str, interface_config: InterfaceConfig
+):
     manager_params = ManagerParams(host, device_type)
     interface = Interface(manager_params)
     try:
-        return interface.add(interface_config)
+        interface.add(interface_config)
+        return {
+            "detail": f"Successfully added {interface_config.interface_name}"
+        }
     except CannotEdit as e:
         logger.info(str(e))
         raise HTTPException(status_code=400, detail=f"Cannot edit: {e}")
@@ -81,7 +88,8 @@ def remove_interface(host: str, device_type: str, interface_name: str):
     manager_params = ManagerParams(host, device_type)
     interface = Interface(manager_params)
     try:
-        return interface.remove(interface_name)
+        interface.remove(interface_name)
+        return {"detail": f"Successfully removed {interface_name}"}
     except CannotEdit as e:
         logger.info(str(e))
         raise HTTPException(status_code=400, detail=f"Cannot edit: {e}")
