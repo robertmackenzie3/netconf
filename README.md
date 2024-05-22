@@ -55,3 +55,11 @@ curl -si 'http://127.0.0.1:8000/interface?host=sandbox-iosxr-1.cisco.com&device_
   }
 }
 ```
+
+```
+❯ curl -s -X DELETE 'http://127.0.0.1:8000/interface?host=sandbox-iosxr-1.cisco.com&device_type=iosxr&interface_name=Loopback0' | jq
+
+{
+  "detail": "Cannot edit: Interface Loopback0 does not exist"
+}
+```
