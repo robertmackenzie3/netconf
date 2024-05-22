@@ -1,0 +1,3 @@
+
+class CannotEdit(Exception):
+    pass
