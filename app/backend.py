@@ -23,7 +23,6 @@ class ManagerParams:
 
     host: str
     device_type: str
-    port: int = 830
     timeout: int = 30
     hostkey_verify: bool = False
     look_for_keys: bool = False
@@ -36,7 +35,6 @@ class ManagerParams:
         """Format the manager params dict for ncclient manager.connect"""
         return {
             "host": self.host,
-            "port": self.port,
             "username": self.username,
             "password": self.password,
             "timeout": self.timeout,
