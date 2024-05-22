@@ -36,7 +36,7 @@ curl -s -X DELETE 'http://127.0.0.1:8000/interface?host=sandbox-iosxr-1.cisco.co
 curl -si 'http://127.0.0.1:8000/interface?host=sandbox-iosxr-1.cisco.com&device_type=iosxr&interface_name=Loopback0'
 ```
 
-```
+```bash
 ❯ curl -s 'http://127.0.0.1:8000/interface?host=sandbox-iosxr-1.cisco.com&device_type=iosxr&interface_name=Loopback2' | jq
 
 {
@@ -56,10 +56,29 @@ curl -si 'http://127.0.0.1:8000/interface?host=sandbox-iosxr-1.cisco.com&device_
 }
 ```
 
-```
+```bash
 ❯ curl -s -X DELETE 'http://127.0.0.1:8000/interface?host=sandbox-iosxr-1.cisco.com&device_type=iosxr&interface_name=Loopback0' | jq
 
 {
   "detail": "Cannot edit: Interface Loopback0 does not exist"
 }
+```
+
+## device types
+
+```text
+Alcatel Lucent: device_params={'name':'alu'}
+Ciena: device_params={'name':'ciena'}
+Cisco:
+    CSR: device_params={'name':'csr'}
+    Nexus: device_params={'name':'nexus'}
+    IOS XR: device_params={'name':'iosxr'}
+    IOS XE: device_params={'name':'iosxe'}
+H3C: device_params={'name':'h3c'}
+HP Comware: device_params={'name':'hpcomware'}
+Huawei:
+    device_params={'name':'huawei'}
+    device_params={'name':'huaweiyang'}
+Juniper: device_params={'name':'junos'}
+Server or anything not in above: device_params={'name':'default'}
 ```
