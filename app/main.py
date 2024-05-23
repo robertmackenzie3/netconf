@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 
 from app.backend import Device, InterfaceManager
-from app.exceptions import CannotEdit, InvalidCredential, InvalidData
-from app.models import InterfaceConfig
+from app.exceptions import CannotEdit, InvalidData
+from app.models import InterfaceConfig, DeviceType, CredentialType
 
 load_dotenv()
 
@@ -35,9 +35,9 @@ def healthz() -> dict:
 @app.get("/interface")
 def get_interface(
     host: str,
-    device_type: str,
+    device_type: DeviceType,
     interface_name: str,
-    credential: str = "DEFAULT",
+    credential: CredentialType = "DEFAULT",
 ) -> dict:
     """
     Get an interface via netconf
@@ -51,13 +51,9 @@ def get_interface(
         json_data (dict)
     """
     try:
-        device = Device(host, device_type, credential)
+        device = Device(host, device_type.value, credential)
         interface_manager = InterfaceManager(device)
         return interface_manager.get_one(interface_name)
-    except InvalidCredential as e:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid credential: {e}"
-        ) from e
     except InvalidData as e:
         raise HTTPException(
             status_code=404, detail=f"{interface_name} not found on {host}"
@@ -71,7 +67,7 @@ def get_interface(
 
 @app.get("/interfaces")
 def get_interfaces(
-    host: str, device_type: str, credential: str = "DEFAULT"
+    host: str, device_type: DeviceType, credential: CredentialType = "DEFAULT"
 ) -> dict:
     """
     Get all interfaces on a device via netconf
@@ -83,14 +79,8 @@ def get_interfaces(
         json_data (dict)
     """
     try:
-        device = Device(host, device_type, credential)
-    except InvalidCredential as e:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid credential: {e}"
-        ) from e
-
-    interface_manager = InterfaceManager(device)
-    try:
+        device = Device(host, device_type.value, credential)
+        interface_manager = InterfaceManager(device)
         return interface_manager.get_all()
     except Exception as e:
         logger.exception(e.__class__.__name__)
@@ -99,39 +89,33 @@ def get_interfaces(
         ) from e
 
 
-@app.put("/interface")
-def add_interface(
+@app.post("/interface", status_code=201)
+def create_interface(
     host: str,
-    device_type: str,
+    device_type: DeviceType,
     interface_config: InterfaceConfig,
-    credential: str = "DEFAULT",
+    credential: CredentialType = "DEFAULT",
 ) -> dict:
     """
-    Add an interface to the device config and commit
+    Create an interface on the device and commit
     Args:
         host (str): hostname of the device to connect to
         device_type (str): ncclient device type
-        interface_config (InterfaceConfig): config of interface to add
+        interface_config (InterfaceConfig): config of interface to create
         credential (str): optional credential to use
     Returns:
         json_data (dict)
     """
     try:
-        device = Device(host, device_type, credential)
-    except InvalidCredential as e:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid credential: {e}"
-        ) from e
-
-    interface_manager = InterfaceManager(device)
-    try:
-        interface_manager.add(interface_config)
+        device = Device(host, device_type.value, credential)
+        interface_manager = InterfaceManager(device)
+        interface_manager.create(interface_config)
         return {
-            "detail": f"Successfully added {interface_config.interface_name}"
+            "detail": f"Successfully created {interface_config.interface_name}"
         }
     except CannotEdit as e:
         logger.info(str(e))
-        raise HTTPException(status_code=400, detail=f"Cannot edit: {e}") from e
+        raise HTTPException(status_code=409, detail=f"Cannot edit: {e}") from e
     except Exception as e:
         logger.exception(e.__class__.__name__)
         raise HTTPException(
@@ -139,37 +123,30 @@ def add_interface(
         ) from e
 
 
-@app.delete("/interface")
-def remove_interface(
+@app.delete("/interface", status_code=204)
+def delete_interface(
     host: str,
-    device_type: str,
+    device_type: DeviceType,
     interface_name: str,
-    credential: str = "DEFAULT",
-) -> dict:
+    credential: CredentialType = "DEFAULT",
+) -> None:
     """
-    Remove an interface from the device config and commit
+    Delete an interface from the device config and commit
     Args:
         host (str): hostname of the device to connect to
         device_type (str): ncclient device type
-        interface_name (str): name of the interface to remove
+        interface_name (str): name of the interface to delete
         credential (str): optional credential to use
     Returns:
-        json_data (dict)
+        None (204 status code cannot return data)
     """
     try:
-        device = Device(host, device_type, credential)
-    except InvalidCredential as e:
-        raise HTTPException(
-            status_code=400, detail=f"Invalid credential: {e}"
-        ) from e
-
-    interface_manager = InterfaceManager(device)
-    try:
-        interface_manager.remove(interface_name)
-        return {"detail": f"Successfully removed {interface_name}"}
+        device = Device(host, device_type.value, credential)
+        interface_manager = InterfaceManager(device)
+        interface_manager.delete(interface_name)
     except CannotEdit as e:
         logger.info(str(e))
-        raise HTTPException(status_code=400, detail=f"Cannot edit: {e}") from e
+        raise HTTPException(status_code=404, detail=f"Cannot edit: {e}") from e
     except Exception as e:
         logger.exception(e.__class__.__name__)
         raise HTTPException(

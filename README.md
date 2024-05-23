@@ -87,7 +87,6 @@ Server or anything not in above: device_params={'name':'default'}
 
 ## TODO
 
-1. unit tests
 2. integration tests
 3. add nginx front server with docker compose
 4. add dry run

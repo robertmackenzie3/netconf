@@ -175,9 +175,9 @@ class InterfaceManager:
             rendered_config = template.render()
             return self.device.get_config(ncclient_manager, rendered_config)
 
-    def add(self, interface_config: InterfaceConfig) -> dict:
+    def create(self, interface_config: InterfaceConfig) -> dict:
         """
-        Add a single interface to the device config
+        Create a single interface on the device
         Args:
             interface_config (InterfaceConfig): config of interface to add
         Returns:
@@ -195,9 +195,9 @@ class InterfaceManager:
             rendered_config = template.render(**interface_config.__dict__)
             return self.device.edit_config(ncclient_manager, rendered_config)
 
-    def remove(self, interface_name: str) -> dict:
+    def delete(self, interface_name: str) -> dict:
         """
-        Remove a single interface from the device config
+        Delete a single interface from the device config
         Args:
             interface_name (str): name of the interface to check
         Returns:
