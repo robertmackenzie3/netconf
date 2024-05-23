@@ -26,7 +26,7 @@ class TestMain(TestCase):
     def setUpClass(cls):
         cls.env_patcher = patch.dict(
             os.environ,
-            {"DEVICE_USERNAME": "test", "DEVICE_PASSWORD": "test"},
+            {"DEFAULT_USERNAME": "test", "DEFAULT_PASSWORD": "test"},
         )
         cls.env_patcher.start()
         cls.client = TestClient(app)
@@ -53,7 +53,7 @@ class TestInterface(TestCase):
     def setUpClass(cls):
         cls.env_patcher = patch.dict(
             os.environ,
-            {"DEVICE_USERNAME": "test", "DEVICE_PASSWORD": "test"},
+            {"DEFAULT_USERNAME": "test", "DEFAULT_PASSWORD": "test"},
         )
         cls.env_patcher.start()
         cls.client = TestClient(app)
