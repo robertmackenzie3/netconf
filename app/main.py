@@ -37,7 +37,7 @@ def get_interface(
     host: str,
     device_type: DeviceType,
     interface_name: str,
-    credential: CredentialType = "DEFAULT",
+    credential: CredentialType = CredentialType.DEFAULT,
 ) -> dict:
     """
     Get an interface via netconf
@@ -51,7 +51,7 @@ def get_interface(
         json_data (dict)
     """
     try:
-        device = Device(host, device_type.value, credential)
+        device = Device(host, device_type.value, credential.value)
         interface_manager = InterfaceManager(device)
         return interface_manager.get_one(interface_name)
     except InvalidData as e:
@@ -67,7 +67,9 @@ def get_interface(
 
 @app.get("/interfaces")
 def get_interfaces(
-    host: str, device_type: DeviceType, credential: CredentialType = "DEFAULT"
+    host: str,
+    device_type: DeviceType,
+    credential: CredentialType = CredentialType.DEFAULT,
 ) -> dict:
     """
     Get all interfaces on a device via netconf
@@ -79,7 +81,7 @@ def get_interfaces(
         json_data (dict)
     """
     try:
-        device = Device(host, device_type.value, credential)
+        device = Device(host, device_type.value, credential.value)
         interface_manager = InterfaceManager(device)
         return interface_manager.get_all()
     except Exception as e:
@@ -94,7 +96,7 @@ def create_interface(
     host: str,
     device_type: DeviceType,
     interface_config: InterfaceConfig,
-    credential: CredentialType = "DEFAULT",
+    credential: CredentialType = CredentialType.DEFAULT,
 ) -> dict:
     """
     Create an interface on the device and commit
@@ -107,7 +109,7 @@ def create_interface(
         json_data (dict)
     """
     try:
-        device = Device(host, device_type.value, credential)
+        device = Device(host, device_type.value, credential.value)
         interface_manager = InterfaceManager(device)
         interface_manager.create(interface_config)
         return {
@@ -128,7 +130,7 @@ def delete_interface(
     host: str,
     device_type: DeviceType,
     interface_name: str,
-    credential: CredentialType = "DEFAULT",
+    credential: CredentialType = CredentialType.DEFAULT,
 ) -> None:
     """
     Delete an interface from the device config and commit
@@ -141,7 +143,7 @@ def delete_interface(
         None (204 status code cannot return data)
     """
     try:
-        device = Device(host, device_type.value, credential)
+        device = Device(host, device_type.value, credential.value)
         interface_manager = InterfaceManager(device)
         interface_manager.delete(interface_name)
     except CannotEdit as e:
