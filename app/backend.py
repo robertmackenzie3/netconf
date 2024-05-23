@@ -1,5 +1,9 @@
 """
 Backend classes to action changes on a device via NETCONF
+
+Create a device with how to connect, read, edit
+create interfacemgt class and pass device in to manager interfaces
+
 """
 
 import os
@@ -9,62 +13,100 @@ import xmltodict
 from jinja2 import Environment, FileSystemLoader
 from ncclient import manager
 
-from app.exceptions import CannotEdit
+from app.exceptions import CannotEdit, InvalidCredential
 from app.models import InterfaceConfig
 
 env = Environment(loader=FileSystemLoader("app/templates"))
 
 
+def get_credentials(credential: str) -> tuple:
+    """
+    Get credentials from environment base on a type
+    Args:
+        credential (str): type of credential to retreive
+    Returns:
+        tuple (username, password)
+    """
+    try:
+        return (
+            os.environ[f"{credential}_USERNAME"],
+            os.environ[f"{credential}_PASSWORD"],
+        )
+    except KeyError as e:
+        raise InvalidCredential(credential) from e
+
+
 @dataclass
-class ManagerParams:
+class ConnectionManager:
     """
     Class to manage how to connect to the device via ncclient
     """
 
-    host: str
-    device_type: str
     timeout: int = 30
     hostkey_verify: bool = False
     look_for_keys: bool = False
 
-    def __post_init__(self):
-        self.username = os.environ["DEVICE_USERNAME"]
-        self.password = os.environ["DEVICE_PASSWORD"]
-
-    def format(self):
+    def format_params(
+        self, host: str, device_type: str, username: str, password: str
+    ) -> dict:
         """Format the manager params dict for ncclient manager.connect"""
         return {
-            "host": self.host,
-            "username": self.username,
-            "password": self.password,
+            "host": host,
+            "username": username,
+            "password": password,
             "timeout": self.timeout,
             "hostkey_verify": self.hostkey_verify,
             "look_for_keys": self.look_for_keys,
-            "device_params": {"name": self.device_type},
+            "device_params": {"name": device_type},
         }
 
 
 @dataclass
-class BaseObject:
+class Device:
     """
-    A base class for an object that can be retrieved or editted on a device
+    A class to manage parameters to connect to a device and
+    how to get/edit the config
     """
 
-    manager_params: ManagerParams
+    host: str
+    device_type: str
+    credential: str
 
-    def _get_config(self, conn, rendered_config):
-        response = conn.get_config(source="running", filter=rendered_config)
+    def __post_init__(self):
+        connection_manager = ConnectionManager()
+        username, password = get_credentials(self.credential)
+        self.manager_params = connection_manager.format_params(
+            self.host, self.device_type, username, password
+        )
+
+    def get_config(
+        self, ncclient_manager: manager.Manager, rendered_config: str
+    ) -> dict:
+        """
+        Get the running config with a filter
+        returns a dict from the xml data
+        """
+        response = ncclient_manager.get_config(
+            source="running", filter=rendered_config
+        )
         xml_data = response.data_xml
         return xmltodict.parse(xml_data)
 
-    def _edit_config(self, conn, rendered_config):
-        conn.edit_config(target="candidate", config=rendered_config)
-        conn.commit()
+    def edit_config(
+        self, ncclient_manager: manager.Manager, rendered_config: str
+    ) -> None:
+        """Edit the candidate config and commit the change"""
+        ncclient_manager.edit_config(
+            target="candidate", config=rendered_config
+        )
+        ncclient_manager.commit()
 
 
 @dataclass
-class Interface(BaseObject):
+class InterfaceManager:
     """An interface object on a device"""
+
+    device: Device
 
     def _check_exists(self, interface_name: str) -> bool:
         """
@@ -85,12 +127,12 @@ class Interface(BaseObject):
         Returns:
             dict
         """
-        with manager.connect(**self.manager_params.format()) as conn:
+        with manager.connect(**self.device.manager_params) as ncclient_manager:
             template = env.get_template(
-                f"{self.manager_params.device_type}_get_interface.xml.j2"
+                f"{self.device.device_type}_get_interface.xml.j2"
             )
             rendered_config = template.render(interface_name=interface_name)
-            return self._get_config(conn, rendered_config)
+            return self.device.get_config(ncclient_manager, rendered_config)
 
     def get_all(self) -> dict:
         """
@@ -98,12 +140,12 @@ class Interface(BaseObject):
         Returns:
             dict
         """
-        with manager.connect(**self.manager_params.format()) as conn:
+        with manager.connect(**self.device.manager_params) as ncclient_manager:
             template = env.get_template(
-                f"{self.manager_params.device_type}_get_interfaces.xml.j2"
+                f"{self.device.device_type}_get_interfaces.xml.j2"
             )
             rendered_config = template.render()
-            return self._get_config(conn, rendered_config)
+            return self.device.get_config(ncclient_manager, rendered_config)
 
     def add(self, interface_config: InterfaceConfig) -> dict:
         """
@@ -118,12 +160,12 @@ class Interface(BaseObject):
                 f"Interface {interface_config.interface_name} already exists"
             )
 
-        with manager.connect(**self.manager_params.format()) as conn:
+        with manager.connect(**self.device.manager_params) as ncclient_manager:
             template = env.get_template(
-                f"{self.manager_params.device_type}_create_interface.xml.j2"
+                f"{self.device.device_type}_create_interface.xml.j2"
             )
             rendered_config = template.render(**interface_config.__dict__)
-            return self._edit_config(conn, rendered_config)
+            return self.device.edit_config(ncclient_manager, rendered_config)
 
     def remove(self, interface_name: str) -> dict:
         """
@@ -136,9 +178,9 @@ class Interface(BaseObject):
         if not self._check_exists(interface_name):
             raise CannotEdit(f"Interface {interface_name} does not exist")
 
-        with manager.connect(**self.manager_params.format()) as conn:
+        with manager.connect(**self.device.manager_params) as ncclient_manager:
             template = env.get_template(
-                f"{self.manager_params.device_type}_delete_interface.xml.j2"
+                f"{self.device.device_type}_delete_interface.xml.j2"
             )
             rendered_config = template.render(interface_name=interface_name)
-            return self._edit_config(conn, rendered_config)
+            return self.device.edit_config(ncclient_manager, rendered_config)
