@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 
 from app.backend import Device, InterfaceManager
-from app.exceptions import CannotEdit, InvalidCredential
+from app.exceptions import CannotEdit, InvalidCredential, InvalidData
 from app.models import InterfaceConfig
 
 load_dotenv()
@@ -52,26 +52,21 @@ def get_interface(
     """
     try:
         device = Device(host, device_type, credential)
+        interface_manager = InterfaceManager(device)
+        return interface_manager.get_one(interface_name)
     except InvalidCredential as e:
         raise HTTPException(
             status_code=400, detail=f"Invalid credential: {e}"
         ) from e
-
-    interface_manager = InterfaceManager(device)
-    try:
-        json_data = interface_manager.get_one(interface_name)
+    except InvalidData as e:
+        raise HTTPException(
+            status_code=404, detail=f"{interface_name} not found on {host}"
+        ) from e
     except Exception as e:
         logger.exception(e.__class__.__name__)
         raise HTTPException(
             status_code=500, detail=f"Exception {e.__class__.__name__}: {e}"
         ) from e
-
-    if json_data.get("data", {}).get("interface-configurations"):
-        return json_data
-
-    raise HTTPException(
-        status_code=404, detail=f"{interface_name} not found on {host}"
-    )
 
 
 @app.get("/interfaces")

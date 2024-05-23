@@ -13,7 +13,7 @@ import xmltodict
 from jinja2 import Environment, FileSystemLoader
 from ncclient import manager
 
-from app.exceptions import CannotEdit, InvalidCredential
+from app.exceptions import CannotEdit, InvalidCredential, InvalidData
 from app.models import InterfaceConfig
 
 env = Environment(loader=FileSystemLoader("app/templates"))
@@ -29,8 +29,8 @@ def get_credentials(credential: str) -> tuple:
     """
     try:
         return (
-            os.environ[f"{credential}_USERNAME"],
-            os.environ[f"{credential}_PASSWORD"],
+            os.environ[f"{credential.upper()}_USERNAME"],
+            os.environ[f"{credential.upper()}_PASSWORD"],
         )
     except KeyError as e:
         raise InvalidCredential(credential) from e
@@ -79,6 +79,28 @@ class Device:
             self.host, self.device_type, username, password
         )
 
+    def validate_data(self, json_data: dict) -> None:
+        """
+        Validate the json data contains what we need based on device_type
+        Raises:
+            InvalidData when the data is not valid for the device tpye
+        """
+        if self.device_type == "iosxr":
+            if (
+                json_data.get("data", {}).get("interface-configurations")
+                is None
+            ):
+                raise InvalidData(json_data)
+
+        if self.device_type == "nexus":
+            if (
+                json_data.get("data", {})
+                .get("interfaces", {})
+                .get("interface")
+                is None
+            ):
+                raise InvalidData(json_data)
+
     def get_config(
         self, ncclient_manager: manager.Manager, rendered_config: str
     ) -> dict:
@@ -90,7 +112,9 @@ class Device:
             source="running", filter=rendered_config
         )
         xml_data = response.data_xml
-        return xmltodict.parse(xml_data)
+        json_data = xmltodict.parse(xml_data)
+        self.validate_data(json_data)
+        return json_data
 
     def edit_config(
         self, ncclient_manager: manager.Manager, rendered_config: str
@@ -116,8 +140,12 @@ class InterfaceManager:
         Returns:
             boolean
         """
-        json_data = self.get_one(interface_name)
-        return bool(json_data.get("data", {}).get("interface-configurations"))
+        try:
+            self.get_one(interface_name)
+        except InvalidData:
+            return False
+
+        return True
 
     def get_one(self, interface_name: str) -> dict:
         """

@@ -13,3 +13,9 @@ class InvalidCredential(Exception):
     """
     Use when we cannot get credentials from the environment
     """
+
+
+class InvalidData(Exception):
+    """
+    Use when the data is invalid
+    """

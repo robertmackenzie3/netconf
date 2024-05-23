@@ -4,12 +4,12 @@ Uses netconf to make changes on network devices
 
 ## Setup
 
-1. Create a vm here: <https://devnetsandbox.cisco.com>
+1. Create an IOSXR vm here: <https://devnetsandbox.cisco.com>
 2. Create an `.env` file with:
 
     ```bash
-    DEVICE_USERNAME=""
-    DEVICE_PASSWORD=""
+    DEFAULT_USERNAME=""
+    DEFAULT_PASSWORD=""
     ```
 
 3. Create venv with python:  
@@ -20,7 +20,9 @@ Uses netconf to make changes on network devices
 `pip install -r requirements.txt`
 5. Run the dev server:  
 `fastapi dev`
-6. Check docs: <http://127.0.0.1:5000/docs>
+
+Serving at: <http://127.0.0.1:8000>  
+API docs: <http://127.0.0.1:8000/docs>
 
 ## Example Calls
 
