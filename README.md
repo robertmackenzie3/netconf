@@ -66,7 +66,7 @@ curl -si 'http://127.0.0.1:8000/interface?host=sandbox-iosxr-1.cisco.com&device_
 }
 ```
 
-## device types
+## ncclient device types
 
 ```text
 Alcatel Lucent: device_params={'name':'alu'}
@@ -84,3 +84,13 @@ Huawei:
 Juniper: device_params={'name':'junos'}
 Server or anything not in above: device_params={'name':'default'}
 ```
+
+## TODO
+
+1. unit tests
+2. integration tests
+3. add nginx front server with docker compose
+4. add dry run
+5. finish nexus add/remove
+6. more advanced pipeline
+7. gitlab pipeline?
