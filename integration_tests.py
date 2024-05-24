@@ -14,12 +14,22 @@ HOST = "sandbox-iosxr-1.cisco.com"
 DEVICE_TYPE = "iosxr"
 
 
+def test_healthz():
+    """Test the health check"""
+    logging.info("Test health check /healthz")
+    response = requests.get(
+        "http://127.0.0.1:8000/healthz",
+        timeout=30,
+    )
+    assert response.status_code == 200
+
+
 def test_interfaces():
     """Test we can create and delete an interface"""
     interface_name = "Loopback432"
     logging.info("Testing interface with: %s", interface_name)
 
-    logging.info("Get all interfaces")
+    logging.info("Get all interfaces /interfaces")
     response = requests.get(
         "http://127.0.0.1:8000/interfaces",
         params={"host": HOST, "device_type": DEVICE_TYPE},
@@ -93,5 +103,6 @@ def test_interfaces():
 
 
 if __name__ == "__main__":
+    test_healthz()
     test_interfaces()
     print("All assertions passed")
