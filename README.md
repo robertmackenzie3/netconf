@@ -24,11 +24,14 @@ Uses netconf to make changes on network devices
 Serving at: <http://127.0.0.1:8000>  
 API docs: <http://127.0.0.1:8000/docs>
 
+## NGINX
+
+This command will start fastapi app and nginx in front of it on port 80: `docker compose up --build`
+
+This will disable access directly to fastapi but you can get to it via nginx e.g. <http://localhost/docs>
+
 ## TODO
 
-2. integration tests
-3. add nginx front server with docker compose
-4. add dry run
-5. finish nexus add/remove
-6. more advanced pipeline
-7. gitlab pipeline?
+1. integration tests
+2. add dry run
+3. finish nexus add/remove
