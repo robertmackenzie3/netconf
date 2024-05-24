@@ -1,9 +1,5 @@
 """
 Backend classes to action changes on a device via NETCONF
-
-Create a device with how to connect, read, edit
-create interfacemgt class and pass device in to manager interfaces
-
 """
 
 import os
