@@ -42,6 +42,5 @@ This will disable access directly to fastapi but you can get to it via nginx e.g
 
 ## TODO
 
-1. integration tests
-2. finish nexus add/remove
-3. add fingerprinting to work out device_type automatically
+1. finish nexus add/remove
+2. add fingerprinting to work out device_type automatically
