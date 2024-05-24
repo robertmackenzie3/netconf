@@ -14,12 +14,8 @@ from app.models import InterfaceConfig, DeviceType, CredentialType
 
 load_dotenv()
 
-log_level = getattr(
-    logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.DEBUG
-)
+log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper())
 logging.basicConfig(level=log_level)
-logger = logging.getLogger(__name__)
-
 
 app = FastAPI()
 
@@ -28,6 +24,8 @@ app = FastAPI()
 def healthz() -> dict:
     """
     Basic endpoint for use with health checks e.g. in k8s
+    Returns:
+        dict
     """
     return {"detail": "Netconf is running"}
 
@@ -48,7 +46,7 @@ def get_interface(
         interface_name (str): name of the interface to get
         credential (str): optional credential to use
     Returns:
-        json_data (dict)
+        dict
     """
     try:
         device = Device(host, device_type.value, credential.value)
@@ -59,7 +57,7 @@ def get_interface(
             status_code=404, detail=f"{interface_name} not found on {host}"
         ) from e
     except Exception as e:
-        logger.exception(e.__class__.__name__)
+        logging.exception(e.__class__.__name__)
         raise HTTPException(
             status_code=500, detail=f"Exception {e.__class__.__name__}: {e}"
         ) from e
@@ -78,25 +76,26 @@ def get_interfaces(
         device_type (str): ncclient device type
         credential (str): optional credential to use
     Returns:
-        json_data (dict)
+        dict
     """
     try:
         device = Device(host, device_type.value, credential.value)
         interface_manager = InterfaceManager(device)
         return interface_manager.get_all()
     except Exception as e:
-        logger.exception(e.__class__.__name__)
+        logging.exception(e.__class__.__name__)
         raise HTTPException(
             status_code=500, detail=f"Exception {e.__class__.__name__}: {e}"
         ) from e
 
 
-@app.post("/interface", status_code=201)
+@app.post("/interface", status_code=200)
 def create_interface(
     host: str,
     device_type: DeviceType,
     interface_config: InterfaceConfig,
     credential: CredentialType = CredentialType.DEFAULT,
+    dry_run: bool = False,
 ) -> dict:
     """
     Create an interface on the device and commit
@@ -105,33 +104,38 @@ def create_interface(
         device_type (str): ncclient device type
         interface_config (InterfaceConfig): config of interface to create
         credential (str): optional credential to use
+        dry_run (bool): if true returns what we would send to create
     Returns:
-        json_data (dict)
+        dict
     """
     try:
         device = Device(host, device_type.value, credential.value)
         interface_manager = InterfaceManager(device)
-        interface_manager.create(interface_config)
+        data = interface_manager.create(interface_config, dry_run)
+        if dry_run:
+            return {"dry_run": data}
+
         return {
             "detail": f"Successfully created {interface_config.interface_name}"
         }
     except CannotEdit as e:
-        logger.info(str(e))
+        logging.info(str(e))
         raise HTTPException(status_code=409, detail=f"Cannot edit: {e}") from e
     except Exception as e:
-        logger.exception(e.__class__.__name__)
+        logging.exception(e.__class__.__name__)
         raise HTTPException(
             status_code=500, detail=f"Exception {e.__class__.__name__}: {e}"
         ) from e
 
 
-@app.delete("/interface", status_code=204)
+@app.delete("/interface", status_code=200)
 def delete_interface(
     host: str,
     device_type: DeviceType,
     interface_name: str,
     credential: CredentialType = CredentialType.DEFAULT,
-) -> None:
+    dry_run: bool = False,
+) -> dict:
     """
     Delete an interface from the device config and commit
     Args:
@@ -139,18 +143,23 @@ def delete_interface(
         device_type (str): ncclient device type
         interface_name (str): name of the interface to delete
         credential (str): optional credential to use
+        dry_run (bool): if true returns what we would send to create
     Returns:
-        None (204 status code cannot return data)
+        dict
     """
     try:
         device = Device(host, device_type.value, credential.value)
         interface_manager = InterfaceManager(device)
-        interface_manager.delete(interface_name)
+        data = interface_manager.delete(interface_name, dry_run)
+        if dry_run:
+            return {"dry_run": data}
+
+        return {"detail": f"Successfully deleted {interface_name}"}
     except CannotEdit as e:
-        logger.info(str(e))
+        logging.info(str(e))
         raise HTTPException(status_code=404, detail=f"Cannot edit: {e}") from e
     except Exception as e:
-        logger.exception(e.__class__.__name__)
+        logging.exception(e.__class__.__name__)
         raise HTTPException(
             status_code=500, detail=f"Exception {e.__class__.__name__}: {e}"
         ) from e

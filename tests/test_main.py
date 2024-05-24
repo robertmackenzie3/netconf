@@ -230,7 +230,7 @@ class TestInterface(TestCase):
                 "netmask": "255.255.255.255",
             },
         )
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 200)
         mock_manager_obj.edit_config.assert_called_once_with(
             target="candidate",
             config=IOSXR_CREATE_INTERFACE,
@@ -258,6 +258,27 @@ class TestInterface(TestCase):
         mock_manager_obj.edit_config.assert_not_called()
 
     @patch("app.backend.manager.connect")
+    def test_create_interface_dry_run(self, mock_manager):
+        """Test we dont create an interface when dry run"""
+        mock_config = MagicMock()
+        mock_config.data_xml = IOSXR_GET_INTERFACE_MISSING
+        mock_manager_obj = MagicMock()
+        mock_manager_obj.get_config.return_value = mock_config
+        mock_manager.return_value.__enter__.return_value = mock_manager_obj
+
+        response = self.client.post(
+            "/interface",
+            params={"host": "test", "device_type": "iosxr", "dry_run": True},
+            json={
+                "interface_name": "vlan1",
+                "address": "10.0.0.1",
+                "netmask": "255.255.255.255",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        mock_manager_obj.edit_config.assert_not_called()
+
+    @patch("app.backend.manager.connect")
     def test_delete_interface(self, mock_manager):
         """Test we can delete an interface"""
         mock_config = MagicMock()
@@ -274,7 +295,7 @@ class TestInterface(TestCase):
                 "interface_name": "vlan1",
             },
         )
-        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response.status_code, 200)
         mock_manager_obj.edit_config.assert_called_once_with(
             target="candidate",
             config=IOSXR_DELETE_INTERFACE,
@@ -298,4 +319,25 @@ class TestInterface(TestCase):
             },
         )
         self.assertEqual(response.status_code, 404)
+        mock_manager_obj.edit_config.assert_not_called()
+
+    @patch("app.backend.manager.connect")
+    def test_delete_interface_dry_run(self, mock_manager):
+        """Test we dont delete an interface when dry_run"""
+        mock_config = MagicMock()
+        mock_config.data_xml = IOSXR_GET_INTERFACE
+        mock_manager_obj = MagicMock()
+        mock_manager_obj.get_config.return_value = mock_config
+        mock_manager.return_value.__enter__.return_value = mock_manager_obj
+
+        response = self.client.delete(
+            "/interface",
+            params={
+                "host": "test",
+                "device_type": "iosxr",
+                "interface_name": "vlan1",
+                "dry_run": True,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
         mock_manager_obj.edit_config.assert_not_called()

@@ -175,7 +175,9 @@ class InterfaceManager:
             rendered_config = template.render()
             return self.device.get_config(ncclient_manager, rendered_config)
 
-    def create(self, interface_config: InterfaceConfig) -> dict:
+    def create(
+        self, interface_config: InterfaceConfig, dry_run: bool = False
+    ) -> dict:
         """
         Create a single interface on the device
         Args:
@@ -193,9 +195,12 @@ class InterfaceManager:
                 f"{self.device.device_type}_create_interface.xml.j2"
             )
             rendered_config = template.render(**interface_config.__dict__)
+            if dry_run:
+                return rendered_config
+
             return self.device.edit_config(ncclient_manager, rendered_config)
 
-    def delete(self, interface_name: str) -> dict:
+    def delete(self, interface_name: str, dry_run: bool = False) -> dict:
         """
         Delete a single interface from the device config
         Args:
@@ -211,4 +216,7 @@ class InterfaceManager:
                 f"{self.device.device_type}_delete_interface.xml.j2"
             )
             rendered_config = template.render(interface_name=interface_name)
+            if dry_run:
+                return rendered_config
+
             return self.device.edit_config(ncclient_manager, rendered_config)
