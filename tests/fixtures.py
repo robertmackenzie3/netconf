@@ -157,7 +157,7 @@ xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ipv4-io-cfg">
     </interface-configurations>
 </config>"""
 
-IOSXR_DELETE_INTERFACE = '''<config \
+IOSXR_DELETE_INTERFACE = """<config \
 xmlns:nc="urn:ietf:params:xml:ns:netconf:base:1.0">
     <interface-configurations \
 xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg">
@@ -167,4 +167,16 @@ xmlns="http://cisco.com/ns/yang/Cisco-IOS-XR-ifmgr-cfg">
         </interface-configuration>
     </interface-configurations>
 </config>
-'''
+"""
+
+IOSXR_CAPABILITIES = [
+    "urn:ietf:params:netconf:base:1.1",
+    "urn:ietf:params:netconf:capability:candidate:1.0",
+    "urn:ietf:params:netconf:capability:rollback-on-error:1.0",
+    "urn:ietf:params:netconf:capability:validate:1.1",
+    "urn:ietf:params:netconf:capability:confirmed-commit:1.1",
+    "urn:ietf:params:netconf:capability:notification:1.0",
+    "urn:ietf:params:netconf:capability:interleave:1.0",
+    "http://cisco.com/ns/yang/Cisco-IOS-XR-um-event-manager-policy-map-cfg?"
+    "module=Cisco-IOS-XR-um-event-manager-policy-map-cfg&revision=2021-06-16",
+]

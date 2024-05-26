@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException
 
 from app.backend import Device, InterfaceManager
 from app.exceptions import CannotEdit, InvalidData
-from app.models import InterfaceConfig, DeviceType, CredentialType
+from app.models import InterfaceConfig, CredentialType
 
 load_dotenv()
 
@@ -33,7 +33,6 @@ def healthz() -> dict:
 @app.get("/interface")
 def get_interface(
     host: str,
-    device_type: DeviceType,
     interface_name: str,
     credential: CredentialType = CredentialType.DEFAULT,
 ) -> dict:
@@ -49,13 +48,11 @@ def get_interface(
         dict
     """
     try:
-        device = Device(host, device_type.value, credential.value)
+        device = Device(host, credential.value)
         interface_manager = InterfaceManager(device)
         return interface_manager.get_one(interface_name)
     except InvalidData as e:
-        raise HTTPException(
-            status_code=404, detail=f"{interface_name} not found on {host}"
-        ) from e
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except Exception as e:
         logging.exception(e.__class__.__name__)
         raise HTTPException(
@@ -66,7 +63,6 @@ def get_interface(
 @app.get("/interfaces")
 def get_interfaces(
     host: str,
-    device_type: DeviceType,
     credential: CredentialType = CredentialType.DEFAULT,
 ) -> dict:
     """
@@ -79,7 +75,7 @@ def get_interfaces(
         dict
     """
     try:
-        device = Device(host, device_type.value, credential.value)
+        device = Device(host, credential.value)
         interface_manager = InterfaceManager(device)
         return interface_manager.get_all()
     except Exception as e:
@@ -92,7 +88,6 @@ def get_interfaces(
 @app.post("/interface", status_code=200)
 def create_interface(
     host: str,
-    device_type: DeviceType,
     interface_config: InterfaceConfig,
     credential: CredentialType = CredentialType.DEFAULT,
     dry_run: bool = False,
@@ -109,7 +104,7 @@ def create_interface(
         dict
     """
     try:
-        device = Device(host, device_type.value, credential.value)
+        device = Device(host, credential.value)
         interface_manager = InterfaceManager(device)
         data = interface_manager.create(interface_config, dry_run)
         if dry_run:
@@ -131,7 +126,6 @@ def create_interface(
 @app.delete("/interface", status_code=200)
 def delete_interface(
     host: str,
-    device_type: DeviceType,
     interface_name: str,
     credential: CredentialType = CredentialType.DEFAULT,
     dry_run: bool = False,
@@ -148,7 +142,7 @@ def delete_interface(
         dict
     """
     try:
-        device = Device(host, device_type.value, credential.value)
+        device = Device(host, credential.value)
         interface_manager = InterfaceManager(device)
         data = interface_manager.delete(interface_name, dry_run)
         if dry_run:

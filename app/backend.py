@@ -2,15 +2,25 @@
 Backend classes to action changes on a device via NETCONF
 """
 
+import logging
 import os
+import sqlite3
 from dataclasses import dataclass
 
 import xmltodict
 from jinja2 import Environment, FileSystemLoader
 from ncclient import manager
 
-from app.exceptions import CannotEdit, InvalidCredential, InvalidData
-from app.models import InterfaceConfig
+from app.exceptions import (
+    CannotEdit,
+    InvalidCredential,
+    InvalidData,
+    InvalidDeviceType,
+)
+from app.models import DeviceCapability, InterfaceConfig
+
+log_level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper())
+logging.basicConfig(level=log_level)
 
 env = Environment(loader=FileSystemLoader("app/templates"))
 
@@ -65,37 +75,92 @@ class Device:
     """
 
     host: str
-    device_type: str
     credential: str
 
     def __post_init__(self):
         connection_manager = ConnectionManager()
         username, password = get_credentials(self.credential)
+        self.device_type = self.get_device_type(
+            connection_manager, username, password
+        )
+        logging.info(
+            "Detected %s as device type: %s", self.host, self.device_type
+        )
         self.manager_params = connection_manager.format_params(
             self.host, self.device_type, username, password
         )
 
-    def validate_data(self, json_data: dict) -> None:
+    def save_device_type(self, device_type: str) -> None:
         """
-        Validate the json data contains what we need based on device_type
-        Raises:
-            InvalidData when the data is not valid for the device tpye
+        Store the device type so we dont need determine it again
+        Args:
+            device_type (str): device type to store with self.host
         """
-        if self.device_type == "iosxr":
-            if (
-                json_data.get("data", {}).get("interface-configurations")
-                is None
-            ):
-                raise InvalidData(json_data)
+        conn = sqlite3.connect("netconf.db")
+        cursor = conn.cursor()
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS device_info ( "
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "host TEXT NOT NULL, "
+            "device_type TEXT NOT NULL)"
+        )
+        cursor.execute(
+            "INSERT INTO device_info (host, device_type) VALUES (?, ?)",
+            (self.host, device_type),
+        )
+        conn.commit()
+        conn.close()
 
-        if self.device_type == "nexus":
-            if (
-                json_data.get("data", {})
-                .get("interfaces", {})
-                .get("interface")
-                is None
-            ):
-                raise InvalidData(json_data)
+    def fetch_device_type(self) -> str:
+        """
+        Fetch device type from db if its there
+        Returns:
+            device type (str)
+        """
+        conn = sqlite3.connect("netconf.db")
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT device_type FROM device_info WHERE host = ?", (self.host,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+        return row[0]
+
+    def get_device_type(
+        self,
+        connection_manager: ConnectionManager,
+        username: str,
+        password: str,
+    ) -> str:
+        """
+        Determine the ncclient device type from the NETCONF capabilities
+        Args:
+            connection_manager (ConnectionManager): used for manager params
+            username (str): to connect to device
+            password (str): to connect to device
+        Returns:
+            device_type (str): ncclient device type
+        Raises:
+            InvalidDeviceType if we can't get a device type
+        """
+        try:
+            return self.fetch_device_type()
+        except (TypeError, sqlite3.OperationalError):
+            pass
+
+        default_manager_params = connection_manager.format_params(
+            self.host, "default", username, password
+        )
+        with manager.connect(**default_manager_params) as mgr:
+            for capability in DeviceCapability:
+                if any(
+                    capability.value in server_capability
+                    for server_capability in mgr.server_capabilities
+                ):
+                    self.save_device_type(capability.name.lower())
+                    return capability.name.lower()
+
+        raise InvalidDeviceType("Could not determine a device type for host")
 
     def get_config(
         self, ncclient_manager: manager.Manager, rendered_config: str
@@ -108,9 +173,7 @@ class Device:
             source="running", filter=rendered_config
         )
         xml_data = response.data_xml
-        json_data = xmltodict.parse(xml_data)
-        self.validate_data(json_data)
-        return json_data
+        return xmltodict.parse(xml_data)
 
     def edit_config(
         self, ncclient_manager: manager.Manager, rendered_config: str
@@ -128,7 +191,26 @@ class InterfaceManager:
 
     device: Device
 
-    def _check_exists(self, interface_name: str) -> bool:
+    def validate_data(self, json_data: dict) -> None:
+        """
+        Validate the json data contains what we need based on what
+        template we used
+        Raises:
+            InvalidData when the data is not valid for the device tpye
+        """
+        if self.device.device_type == "iosxr":
+            if (
+                json_data.get("data", {}).get("interface-configurations")
+                is None
+            ):
+                raise InvalidData(json_data)
+        else:
+            raise InvalidDeviceType(
+                "Cannot validate data for device type "
+                f"{self.device.device_type}"
+            )
+
+    def check_exists(self, interface_name: str) -> bool:
         """
         Check if the interface exists
         Args:
@@ -152,11 +234,14 @@ class InterfaceManager:
             dict
         """
         with manager.connect(**self.device.manager_params) as ncclient_manager:
-            template = env.get_template(
-                f"{self.device.device_type}_get_interface.xml.j2"
-            )
+            template_name = f"{self.device.device_type}_get_interface.xml.j2"
+            template = env.get_template(template_name)
             rendered_config = template.render(interface_name=interface_name)
-            return self.device.get_config(ncclient_manager, rendered_config)
+            json_data = self.device.get_config(
+                ncclient_manager, rendered_config
+            )
+            self.validate_data(json_data)
+            return json_data
 
     def get_all(self) -> dict:
         """
@@ -165,11 +250,14 @@ class InterfaceManager:
             dict
         """
         with manager.connect(**self.device.manager_params) as ncclient_manager:
-            template = env.get_template(
-                f"{self.device.device_type}_get_interfaces.xml.j2"
-            )
+            template_name = f"{self.device.device_type}_get_interfaces.xml.j2"
+            template = env.get_template(template_name)
             rendered_config = template.render()
-            return self.device.get_config(ncclient_manager, rendered_config)
+            json_data = self.device.get_config(
+                ncclient_manager, rendered_config
+            )
+            self.validate_data(json_data)
+            return json_data
 
     def create(
         self, interface_config: InterfaceConfig, dry_run: bool = False
@@ -181,15 +269,16 @@ class InterfaceManager:
         Returns:
             dict
         """
-        if self._check_exists(interface_config.interface_name):
+        if self.check_exists(interface_config.interface_name):
             raise CannotEdit(
                 f"Interface {interface_config.interface_name} already exists"
             )
 
         with manager.connect(**self.device.manager_params) as ncclient_manager:
-            template = env.get_template(
+            template_name = (
                 f"{self.device.device_type}_create_interface.xml.j2"
             )
+            template = env.get_template(template_name)
             rendered_config = template.render(**interface_config.__dict__)
             if dry_run:
                 return rendered_config
@@ -204,13 +293,14 @@ class InterfaceManager:
         Returns:
             dict
         """
-        if not self._check_exists(interface_name):
+        if not self.check_exists(interface_name):
             raise CannotEdit(f"Interface {interface_name} does not exist")
 
         with manager.connect(**self.device.manager_params) as ncclient_manager:
-            template = env.get_template(
+            template_name = (
                 f"{self.device.device_type}_delete_interface.xml.j2"
             )
+            template = env.get_template(template_name)
             rendered_config = template.render(interface_name=interface_name)
             if dry_run:
                 return rendered_config
