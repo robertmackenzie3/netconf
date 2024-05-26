@@ -39,8 +39,3 @@ This command will start fastapi app and nginx in front of it on port 80:
 `docker compose up --build`
 
 This will disable access directly to fastapi but you can get to it via nginx e.g. <http://localhost/docs>
-
-## TODO
-
-1. finish nexus add/remove
-2. add fingerprinting to work out device_type automatically
