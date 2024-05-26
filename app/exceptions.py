@@ -19,3 +19,9 @@ class InvalidData(Exception):
     """
     Use when the data is invalid
     """
+
+
+class InvalidDeviceType(Exception):
+    """
+    Use when we cant determine the device type
+    """

@@ -25,13 +25,17 @@ class CredentialType(str, Enum):
     DEFAULT_USERNAME=""
     DEFAULT_PASSWORD=""
     """
+
     DEFAULT = "DEFAULT"
     NEXUS = "NEXUS"
 
 
-class DeviceType(str, Enum):
+class DeviceCapability(Enum):
     """
-    Valid device types we have implemented
+    Valid device capabilities with NETCONF
     """
-    IOSXR = "iosxr"
-    NEXUS = "nexus"
+
+    IOSXR = "http://cisco.com/ns/yang/Cisco-IOS-XR"
+    # NEXUS = "http://cisco.com/ns/yang/cisco-nx-os-device"
+    # IOSXE = "http://cisco.com/ns/yang/Cisco-IOS-XE"
+    # JUNOS = "http://xml.juniper.net/junos/"
