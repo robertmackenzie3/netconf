@@ -41,7 +41,6 @@ def get_interface(
     If the interface does not exist it returns 404
     Args:
         host (str): hostname of the device to connect to
-        device_type (str): ncclient device type
         interface_name (str): name of the interface to get
         credential (str): optional credential to use
     Returns:
@@ -69,7 +68,6 @@ def get_interfaces(
     Get all interfaces on a device via netconf
     Args:
         host (str): hostname of the device to connect to
-        device_type (str): ncclient device type
         credential (str): optional credential to use
     Returns:
         dict
@@ -96,7 +94,6 @@ def create_interface(
     Create an interface on the device and commit
     Args:
         host (str): hostname of the device to connect to
-        device_type (str): ncclient device type
         interface_config (InterfaceConfig): config of interface to create
         credential (str): optional credential to use
         dry_run (bool): if true returns what we would send to create
@@ -134,7 +131,6 @@ def delete_interface(
     Delete an interface from the device config and commit
     Args:
         host (str): hostname of the device to connect to
-        device_type (str): ncclient device type
         interface_name (str): name of the interface to delete
         credential (str): optional credential to use
         dry_run (bool): if true returns what we would send to create
