@@ -11,7 +11,6 @@ import requests
 logging.basicConfig(level="DEBUG")
 
 HOST = "sandbox-iosxr-1.cisco.com"
-DEVICE_TYPE = "iosxr"
 
 
 def test_healthz():
@@ -32,7 +31,7 @@ def test_interfaces():
     logging.info("Get all interfaces /interfaces")
     response = requests.get(
         "http://127.0.0.1:8000/interfaces",
-        params={"host": HOST, "device_type": DEVICE_TYPE},
+        params={"host": HOST},
         timeout=30,
     )
     assert response.status_code == 200
@@ -42,7 +41,6 @@ def test_interfaces():
         "http://127.0.0.1:8000/interface",
         params={
             "host": HOST,
-            "device_type": DEVICE_TYPE,
             "interface_name": interface_name,
         },
         timeout=30,
@@ -54,7 +52,6 @@ def test_interfaces():
         "http://127.0.0.1:8000/interface",
         params={
             "host": HOST,
-            "device_type": DEVICE_TYPE,
         },
         json={
             "interface_name": interface_name,
@@ -70,7 +67,6 @@ def test_interfaces():
         "http://127.0.0.1:8000/interface",
         params={
             "host": HOST,
-            "device_type": DEVICE_TYPE,
             "interface_name": interface_name,
         },
         timeout=30,
@@ -82,7 +78,6 @@ def test_interfaces():
         "http://127.0.0.1:8000/interface",
         params={
             "host": HOST,
-            "device_type": DEVICE_TYPE,
             "interface_name": interface_name,
         },
         timeout=30,
@@ -94,7 +89,6 @@ def test_interfaces():
         "http://127.0.0.1:8000/interface",
         params={
             "host": HOST,
-            "device_type": DEVICE_TYPE,
             "interface_name": interface_name,
         },
         timeout=30,
