@@ -16,7 +16,8 @@ Uses netconf to make changes on network devices
 `python -m venv venv`
     - Tested on python 3.11.
     - If using pyenv the .python-version file should set it.
-4. Install requirements:  
+4. Install requirements in your venv:  
+`source venv/bin/activate`
 `pip install -r requirements.txt`
 5. Run the dev server:  
 `fastapi dev`
@@ -30,12 +31,12 @@ API docs: <http://127.0.0.1:8000/docs>
 
 ## Integration tests
 
-1. Run `fastapi dev` in one shell
+1. Run `./run_dev.sh` in one shell
 2. Run `./run_integration_tests.sh` in another
 
 ## NGINX
 
 This command will start fastapi app and nginx in front of it on port 80:  
-`docker compose up --build`
+`docker-compose up --build`
 
 This will disable access directly to fastapi but you can get to it via nginx e.g. <http://localhost/docs>
