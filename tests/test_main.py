@@ -37,9 +37,6 @@ class TestMain(TestCase):
     def tearDownClass(cls):
         cls.env_patcher.stop()
 
-    def setUp(self):
-        pass
-
     def test_healthz(self):
         """Test we can check health of app"""
         response = self.client.get("/healthz")
@@ -63,9 +60,6 @@ class TestInterface(TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.env_patcher.stop()
-
-    def setUp(self):
-        pass
 
     @patch("app.backend.Device.get_device_type")
     @patch("app.backend.manager.connect")

@@ -40,3 +40,8 @@ This command will start fastapi app and nginx in front of it on port 80:
 `docker-compose up --build`
 
 This will disable access directly to fastapi but you can get to it via nginx e.g. <http://localhost/docs>
+
+## TODO
+
+- add more ncclient compatible device types: NEXUS, IOSXE, JUNOS etc.
+- manage interfaces using openconfig so we can handle multiple devices types with the same template xml
